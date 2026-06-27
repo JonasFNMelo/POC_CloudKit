@@ -9,29 +9,32 @@ import Foundation
 import CloudKit
 
 struct User {
-    var id        : UUID   = UUID()
-    var name      : String = ""
-    var imageData : Data   = Data()
-    
-    init(id: UUID, name: String, imageData: Data) {
+    var id        : UUID                 = UUID()
+    var name      : String               = ""
+    var imageData : Data                 = Data()
+    var postRefs  : [CKRecord.Reference] = []
+
+    init(id: UUID, name: String, imageData: Data, postRefs: [CKRecord.Reference] = []) {
         self.id        = id
         self.name      = name
         self.imageData = imageData
+        self.postRefs  = postRefs
     }
-    
+
     func toDictionary() -> [String : Any] {
-        return ["id": id, "name" : name, "imageData" : imageData]
+        return ["id": id.uuidString, "name": name, "imageData": imageData, "postRefs": postRefs]
     }
-    
+
     static func fromRecord(record: CKRecord) -> User? {
-        guard let id = record.value(forKey: "id") as? UUID,
-              let name = record.value(forKey: "name") as? String,
+        guard let id        = record.value(forKey: "id")        as? String,
+              let name      = record.value(forKey: "name")      as? String,
               let imageData = record.value(forKey: "imageData") as? Data
         else {
             print("Convertion Error")
             return nil
         }
-        return User(id: id, name: name, imageData: imageData)
+        let postRefs = record.value(forKey: "postRefs") as? [CKRecord.Reference] ?? []
+        return User(id: UUID(uuidString: id)!, name: name, imageData: imageData, postRefs: postRefs)
     }
 }
 

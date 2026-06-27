@@ -85,6 +85,15 @@ class CloudKitService {
         }
     }
     
+    func fetchPublicUser(recordID: CKRecord.ID) async -> CKRecord? {
+        do {
+            return try await publicDatabase.record(for: recordID)
+        } catch {
+            print(error.localizedDescription)
+            return nil
+        }
+    }
+    
     func deletePublicRecord(record: CKRecord) async {
         do {
             try await publicDatabase.deleteRecord(withID: record.recordID)

@@ -6,19 +6,33 @@
 //
 
 import SwiftUI
+import CloudKit
 
 struct ContentView: View {
+    @State var viewModel : ContentViewModel
+    @State var posts     : [Post]
+    
+    init(container: CKContainer) {
+        _viewModel = State(wrappedValue: ContentViewModel(container: container))
+        self.posts = []
+    }
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            List {
+                ForEach(posts) { post in
+                    Text(post.text)
+                }
+            }
         }
         .padding()
+        .onAppear{
+            Task{
+                posts = await viewModel.fetchAllPosts()
+            }
+        }
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(container: CKContainer.default())
 }
