@@ -10,5 +10,5 @@ import SwiftUI
 struct PostWithAuthor: Identifiable {
     var id     : UUID?
     var post   : Post
-    var author : User?
+    var author : User
 }

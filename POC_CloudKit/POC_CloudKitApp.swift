@@ -6,12 +6,13 @@
 //
 
 import SwiftUI
+import CloudKit
 
 @main
 struct POC_CloudKitApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(container: CKContainer.default())
         }
     }
 }
