@@ -52,6 +52,39 @@ class CloudKitService {
         return nil
     }
     
+    func isUserSaved() async -> Bool {
+        do {
+            let cloudKitID = try await container.userRecordID()
+            let record = try await privateDatabase.record(for: cloudKitID)
+            return true
+        } catch {
+            return false
+        }
+    }
+    
+    func fetchPrivateUser() async -> CKRecord? {
+        do {
+            let cloudKitID = try await container.userRecordID()
+            let record = try await privateDatabase.record(for: cloudKitID)
+            return record
+        } catch {
+            print(error.localizedDescription)
+            return nil
+        }
+    }
+    
+    func fetchPublicUser(id: UUID) async -> CKRecord? {
+        do {
+            let predicate = NSPredicate(format: "id == %@", id.uuidString)
+            let query = CKQuery(recordType: RecordType.user.rawValue, predicate: predicate)
+            let result = try await publicDatabase.records(matching: query)
+            return result.matchResults.compactMap { try? $1.get() }.first
+        } catch {
+            print(error.localizedDescription)
+            return nil
+        }
+    }
+    
     func deletePublicRecord(record: CKRecord) async {
         do {
             try await publicDatabase.deleteRecord(withID: record.recordID)

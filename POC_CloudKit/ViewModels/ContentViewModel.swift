@@ -49,4 +49,14 @@ class ContentViewModel {
         }
         return posts
     }
+    
+    func getPublicUser() async -> CKRecord? {
+        guard let privateRecord = await ckService.fetchPrivateUser(),
+              let privateUser = PrivateUser.fromRecord(record: privateRecord)
+        else {
+            return nil
+        }
+        return await ckService.fetchPublicUser(id: privateUser.id)
+    }
+
 }
