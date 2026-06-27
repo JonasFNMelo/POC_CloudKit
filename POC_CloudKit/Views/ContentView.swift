@@ -9,26 +9,32 @@ import SwiftUI
 import CloudKit
 
 struct ContentView: View {
-    @State var viewModel : ContentViewModel
-    @State var posts     : [Post]
+    @State var viewModel       : ContentViewModel
+    @State var postsWithAuthor : [PostWithAuthor]
+    @State var isSheetShowing  : Bool
     
     init(container: CKContainer) {
-        _viewModel = State(wrappedValue: ContentViewModel(container: container))
-        self.posts = []
+        _viewModel       = State(wrappedValue: ContentViewModel(container: container))
+        _postsWithAuthor = State(initialValue: [])
+        _isSheetShowing  = State(initialValue: true)
     }
     var body: some View {
         VStack {
             List {
-                ForEach(posts) { post in
-                    Text(post.text)
+                ForEach(postsWithAuthor) { pwa in
+                    Text(pwa.author.name)
+                    Text(pwa.post.text)
                 }
             }
         }
         .padding()
         .onAppear{
             Task{
-                posts = await viewModel.fetchAllPosts()
+                postsWithAuthor = await viewModel.fetchAllPostsWithAuthor()
             }
+        }
+        .sheet(isPresented: $isSheetShowing){
+            CreatPostSheet()
         }
     }
 }

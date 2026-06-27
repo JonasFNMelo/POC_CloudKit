@@ -10,14 +10,15 @@ import CloudKit
 
 @Observable
 class CloudKitService {
+    static var shared            : CloudKitService = CloudKitService()
     private var container        : CKContainer
     private var publicDatabase   : CKDatabase
     private var privateDatabase  : CKDatabase
     
-    init(container: CKContainer) {
-        self.container        = container
-        self.publicDatabase   = container.publicCloudDatabase
-        self.privateDatabase  = container.privateCloudDatabase
+    private init() {
+        self.container        = CKContainer.default()
+        self.publicDatabase   = CKContainer.default().publicCloudDatabase
+        self.privateDatabase  = CKContainer.default().privateCloudDatabase
     }
     
     func savePublicRecord(record: CKRecord) async {
