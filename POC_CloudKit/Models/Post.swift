@@ -8,29 +8,38 @@
 import Foundation
 import CloudKit
 
-struct Post {
-    var text       : String = ""
-    var imagesData : [Data] = []
-    var isPrivate  : Bool   = false
-    
-    init(text: String, imagesData: [Data], isPrivate: Bool) {
+struct Post: Identifiable {
+    var id         : UUID?                   = nil
+    var text       : String                  = ""
+    var imagesData : [Data]                  = []
+    var isPrivate  : Bool                    = false
+    var authorRef  : CKRecord.Reference?     = nil
+
+    init(id: UUID? = nil, text: String, imagesData: [Data], isPrivate: Bool, authorRef: CKRecord.Reference? = nil) {
+        self.id         = id
         self.text       = text
         self.imagesData = imagesData
         self.isPrivate  = isPrivate
+        self.authorRef  = authorRef
     }
-    
+
     func toDictionary() -> [String : Any] {
-        return ["text" : text, "imagesData" : imagesData, "isPrivate" : isPrivate]
+        var dict: [String : Any] = ["text": text, "imagesData": imagesData, "isPrivate": isPrivate]
+        if let authorRef { dict["author"] = authorRef }
+        if let id        { dict["id"] = id.uuidString }
+        return dict
     }
-    
+
     static func fromRecord(record: CKRecord) -> Post? {
-        guard let text = record.value(forKey: "text") as? String,
+        guard let text       = record.value(forKey: "text")       as? String,
               let imagesData = record.value(forKey: "imagesData") as? [Data],
-              let isPrivate = record.value(forKey: "isPrivate") as? Bool
+              let isPrivate  = record.value(forKey: "isPrivate")  as? Bool
         else {
             print("Convertion Error")
             return nil
         }
-        return Post(text: text, imagesData: imagesData, isPrivate: isPrivate)
+        let authorRef = record.value(forKey: "author") as? CKRecord.Reference
+        let id        = (record.value(forKey: "id") as? String).flatMap { UUID(uuidString: $0) }
+        return Post(id: id, text: text, imagesData: imagesData, isPrivate: isPrivate, authorRef: authorRef)
     }
 }
