@@ -12,7 +12,7 @@ import CloudKit
 struct POC_CloudKitApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView(container: CKContainer.default())
+            ContentView()
         }
     }
 }

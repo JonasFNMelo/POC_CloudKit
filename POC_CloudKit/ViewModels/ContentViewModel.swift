@@ -12,6 +12,10 @@ import CloudKit
 class ContentViewModel {
 
     func saveUser(pUser: PrivateUser) async {
+        if await CloudKitService.shared.isUserSaved() {
+            print("User ja salvo")
+            return
+        }
         let privateUserRecord = CKRecord(recordType: RecordType.privateUser.rawValue)
         privateUserRecord.setValuesForKeys(pUser.toDictionary())
         
@@ -23,31 +27,6 @@ class ContentViewModel {
         await CloudKitService.shared.savePublicRecord(record: publicUserRecord)
     }
     
-    func savePost(post: Post) async {
-        guard let userRecord = await getPublicUser() else {
-            print("User público não encontrado")
-            return
-        }
-
-        let postRecord = CKRecord(recordType: RecordType.post.rawValue)
-        let authorRef  = CKRecord.Reference(recordID: userRecord.recordID, action: .deleteSelf)
-        var updatedPost = post
-        updatedPost.authorRef = authorRef
-        postRecord.setValuesForKeys(updatedPost.toDictionary())
-
-        switch post.isPrivate {
-        case true:
-            await CloudKitService.shared.savePrivateRecord(record: postRecord)
-        case false:
-            await CloudKitService.shared.savePublicRecord(record: postRecord)
-        }
-        
-        var currentPostRefs = userRecord.value(forKey: "postRefs") as? [CKRecord.Reference] ?? []
-        currentPostRefs.append(CKRecord.Reference(recordID: postRecord.recordID, action: .none))
-        userRecord["postRefs"] = currentPostRefs
-        await CloudKitService.shared.savePublicRecord(record: userRecord)
-    }
-    
     func fetchAllPosts() async -> [Post] {
         var posts: [Post] = []
         if let postRecords = await CloudKitService.shared.fetchAllPublicRecords(recordType: RecordType(rawValue: RecordType.post.rawValue)!){
@@ -55,32 +34,24 @@ class ContentViewModel {
                 posts.append(Post.fromRecord(record: pR)!)
             }
         }
+        print(posts)
         return posts
     }
     
-    func getPublicUser() async -> CKRecord? {
-        guard let privateRecord = await CloudKitService.shared.fetchPrivateUser(),
-              let privateUser = PrivateUser.fromRecord(record: privateRecord)
-        else {
-            return nil
-        }
-        return await CloudKitService.shared.fetchPublicUser(id: privateUser.id)
-    }
-    
-    func fetchAllPostsWithAuthor() async -> [PostWithAuthor] {
+    func fetchAllPostsWithAuthor() async -> [PostWithUser] {
         guard let postRecords = await CloudKitService.shared.fetchAllPublicRecords(recordType: .post) else { return [] }
         
-        var result: [PostWithAuthor] = []
+        var result: [PostWithUser] = []
         
         for postRecord in postRecords {
             guard let post = Post.fromRecord(record: postRecord) else { continue }
             
-            var author: User? = nil
-            if let authorRef = post.authorRef,
-               let userRecord = await CloudKitService.shared.fetchPublicUser(recordID: authorRef.recordID) {
-                author = User.fromRecord(record: userRecord)
+            var user: User? = nil
+            if let userID = post.userID,
+               let userRecord = await CloudKitService.shared.fetchPublicUser(recordID: userID.recordID) {
+                user = User.fromRecord(record: userRecord)
             }
-            result.append(PostWithAuthor(id: post.id, post: post, author: author!))
+            result.append(PostWithUser(id: post.id, post: post, user: user!))
         }
         return result
     }

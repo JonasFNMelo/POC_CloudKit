@@ -22,7 +22,11 @@ struct User {
     }
 
     func toDictionary() -> [String : Any] {
-        return ["id": id.uuidString, "name": name, "imageData": imageData, "postRefs": postRefs]
+        var dict: [String: Any] = ["id": id.uuidString, "name": name, "imageData": imageData]
+        if !postRefs.isEmpty {
+            dict["postRefs"] = postRefs
+        }
+        return dict
     }
 
     static func fromRecord(record: CKRecord) -> User? {
@@ -40,12 +44,12 @@ struct User {
 
 struct PrivateUser {
     private(set) var id        : UUID = UUID()
-    private(set) var privateID : CKRecord.ID = .init(recordName: "PrivateUser")
+    private(set) var privateID : String = ""
     
     var name      : String = ""
     var imageData : Data   = Data()
     
-    init(privateID: CKRecord.ID, id: UUID = UUID(), name: String, imageData: Data) {
+    init(privateID: String, id: UUID = UUID(), name: String, imageData: Data) {
         self.id        = id
         self.privateID = privateID
         self.name      = name
@@ -53,14 +57,16 @@ struct PrivateUser {
     }
     
     func toDictionary() -> [String : Any] {
-        return ["name" : name, "imageData" : imageData]
+        return ["name" : name, "imageData" : imageData, "id": id.uuidString, "privateID": privateID]
     }
     
     static func fromRecord(record: CKRecord) -> PrivateUser? {
-        guard let privateID = record.value(forKey: "privateID") as? CKRecord.ID,
-              let id = record.value(forKey: "id") as? UUID,
-              let name = record.value(forKey: "name") as? String,
-              let imageData = record.value(forKey: "imageData") as? Data else {
+        guard let idString  = record.value(forKey: "id")        as? String,
+              let id        = UUID(uuidString: idString),
+              let privateID = record.value(forKey: "privateID") as? String,
+              let name      = record.value(forKey: "name")      as? String,
+              let imageData = record.value(forKey: "imageData") as? Data
+        else {
             print("Convertion Error")
             return nil
         }

@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct PostWithAuthor: Identifiable {
-    var id     : UUID?
-    var post   : Post
-    var author : User
+struct PostWithUser: Identifiable {
+    var id   : UUID?
+    var post : Post
+    var user : User
 }

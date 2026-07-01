@@ -21,6 +21,18 @@ class CloudKitService {
         self.privateDatabase  = CKContainer.default().privateCloudDatabase
     }
     
+    func isUserSaved() async -> Bool {
+        do {
+            let query   = CKQuery(recordType: RecordType.privateUser.rawValue, predicate: NSPredicate(value: true))
+            let result  = try await privateDatabase.records(matching: query)
+            let records = result.matchResults.compactMap { try? $1.get() }
+            if records.isEmpty {return false}
+        } catch {
+            return false
+        }
+        return true
+    }
+    
     func savePublicRecord(record: CKRecord) async {
         do {
             try await self.publicDatabase.save(record)
@@ -41,8 +53,8 @@ class CloudKitService {
     
     func fetchAllPublicRecords(recordType: RecordType) async -> [CKRecord]? {
         do {
-            let query = CKQuery(recordType: recordType.rawValue, predicate: NSPredicate(value: true))
-            let result = try await publicDatabase.records(matching: query)
+            let query   = CKQuery(recordType: recordType.rawValue, predicate: NSPredicate(value: true))
+            let result  = try await publicDatabase.records(matching: query)
             let records = result.matchResults.compactMap { try? $1.get() }
             
             return records
@@ -53,21 +65,30 @@ class CloudKitService {
         return nil
     }
     
-    func isUserSaved() async -> Bool {
+    func fetchAllPostsRecordsFromUserID(recordID: CKRecord.ID) async -> [CKRecord]? {
         do {
-            let cloudKitID = try await container.userRecordID()
-            let record = try await privateDatabase.record(for: cloudKitID)
-            return true
-        } catch {
-            return false
+            let reference = CKRecord.Reference(recordID: recordID, action: .none)
+            let predicate = NSPredicate(format: "userID == %@", reference)
+            let query     = CKQuery(recordType: RecordType.post.rawValue, predicate: predicate)
+            let result    = try await publicDatabase.records(matching: query)
+            let records   = result.matchResults.compactMap { try? $1.get() }
+            
+            return records
         }
+        catch{
+            print(error.localizedDescription)
+        }
+        return nil
     }
     
     func fetchPrivateUser() async -> CKRecord? {
         do {
             let cloudKitID = try await container.userRecordID()
-            let record = try await privateDatabase.record(for: cloudKitID)
-            return record
+            print(cloudKitID.recordName)
+            let predicate  = NSPredicate(format: "privateID == %@", cloudKitID.recordName)
+            let query      = CKQuery(recordType: RecordType.privateUser.rawValue, predicate: predicate)
+            let records    = try await privateDatabase.records(matching: query)
+            return records.matchResults.compactMap { try? $1.get() }.first
         } catch {
             print(error.localizedDescription)
             return nil
@@ -77,8 +98,8 @@ class CloudKitService {
     func fetchPublicUser(id: UUID) async -> CKRecord? {
         do {
             let predicate = NSPredicate(format: "id == %@", id.uuidString)
-            let query = CKQuery(recordType: RecordType.user.rawValue, predicate: predicate)
-            let result = try await publicDatabase.records(matching: query)
+            let query     = CKQuery(recordType: RecordType.user.rawValue, predicate: predicate)
+            let result    = try await publicDatabase.records(matching: query)
             return result.matchResults.compactMap { try? $1.get() }.first
         } catch {
             print(error.localizedDescription)
@@ -113,5 +134,3 @@ class CloudKitService {
         }
     }
 }
-
-//try await CKContainer.default().userRecordID()
