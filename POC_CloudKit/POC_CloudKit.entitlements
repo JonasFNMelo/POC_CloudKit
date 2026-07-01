@@ -6,7 +6,7 @@
 	<string>development</string>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
-		<string>iCloud.JonasMelo.POC-CloudKit</string>
+		<string>iCloud.JonasMelo.POCCloudKit</string>
 	</array>
 	<key>com.apple.developer.icloud-services</key>
 	<array>

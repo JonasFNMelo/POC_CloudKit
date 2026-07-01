@@ -9,36 +9,58 @@ import SwiftUI
 import CloudKit
 
 struct ContentView: View {
-    @State var viewModel       : ContentViewModel
-    @State var postsWithAuthor : [PostWithAuthor]
-    @State var isSheetShowing  : Bool
+    @AppStorage("firstTime") var firstTime: Bool  = false
+    @State var viewModel       : ContentViewModel = ContentViewModel()
+    @State var postsWithAuthor : [PostWithUser]   = []
+    @State var isSheetShowing  : Bool             = false
     
-    init(container: CKContainer) {
-        _viewModel       = State(wrappedValue: ContentViewModel(container: container))
-        _postsWithAuthor = State(initialValue: [])
-        _isSheetShowing  = State(initialValue: true)
-    }
     var body: some View {
-        VStack {
-            List {
-                ForEach(postsWithAuthor) { pwa in
-                    Text(pwa.author.name)
-                    Text(pwa.post.text)
+        NavigationStack {
+            VStack {
+                List {
+                    ForEach(postsWithAuthor) { pwu in
+                        NavigationLink(destination: ProfileView(user: pwu.user)) {
+                            Text(pwu.user.name)
+                        }
+                        Text(pwu.post.text)
+                    }
                 }
             }
-        }
-        .padding()
-        .onAppear{
-            Task{
-                postsWithAuthor = await viewModel.fetchAllPostsWithAuthor()
+            .refreshable {
+                Task {
+                    postsWithAuthor = await viewModel.fetchAllPostsWithAuthor()
+                }
             }
-        }
-        .sheet(isPresented: $isSheetShowing){
-            CreatPostSheet()
+            .padding()
+            .onAppear{
+                Task {
+                    postsWithAuthor = await viewModel.fetchAllPostsWithAuthor()
+                    if !firstTime {
+
+                            guard let cloudKitID = try? await CKContainer.default().userRecordID() else {return}
+                            let pUser = PrivateUser(privateID: cloudKitID.recordName, name: "Jones", imageData: Data())
+                            await viewModel.saveUser(pUser: pUser)
+                        
+                    }
+                }
+            }
+            .sheet(isPresented: $isSheetShowing){
+                CreatPostSheet()
+            }
+            .toolbar {
+                ToolbarItem {
+                    Button {
+                        isSheetShowing = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+
+                }
+            }
         }
     }
 }
 
 #Preview {
-    ContentView(container: CKContainer.default())
+    ContentView()
 }
