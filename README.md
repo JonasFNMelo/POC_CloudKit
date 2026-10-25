@@ -1,56 +1,127 @@
+<div align="center">
+
 # POC_CloudKit
 
-Prova de conceito de uma **rede social mínima sobre CloudKit**: cada usuário tem um perfil, publica posts com texto e imagens e escolhe se o post vai para o banco **público** (visível para todos) ou **privado** (só no iCloud dele). Sem servidor próprio — todo o backend é o iCloud.
+### A tiny social network with iCloud as the whole backend. ☁️
 
-> 📸 _Screenshots em breve._
+POC_CloudKit is a proof of concept of a minimal social app built entirely on CloudKit:
+users get a profile from their iCloud identity, publish posts with text and images, and
+choose whether each post goes to the **public** database for everyone or stays in their
+**private** iCloud — no custom server, no login screen.
 
-## O que a POC valida
+<br/>
 
-- **Bancos público e privado** do `CKContainer` usados lado a lado
-- **Identidade do usuário** a partir do `userRecordID` do iCloud: um registro `PrivateUser` (privado) ligado a um `User` público, sem login próprio
-- **Relacionamentos com `CKRecord.Reference`**: cada `Post` aponta para o seu autor (com `action: .deleteSelf`) e o usuário guarda as referências dos seus posts
-- **Consultas com `CKQuery` + `NSPredicate`**, incluindo a busca de todos os posts de um usuário pela referência
-- **Imagens** salvas como `Data` no próprio registro
-- Mapeamento entre modelos Swift e `CKRecord` (`toDictionary()` / `fromRecord(_:)`)
+[![Platform](https://img.shields.io/badge/iOS-26.2+-000000?style=for-the-badge&logo=apple&logoColor=white)](https://www.apple.com/ios/)
+[![Swift](https://img.shields.io/badge/Swift-5-FA7343?style=for-the-badge&logo=swift&logoColor=white)](https://swift.org)
+[![SwiftUI](https://img.shields.io/badge/SwiftUI-0052CC?style=for-the-badge&logo=swift&logoColor=white)](https://developer.apple.com/xcode/swiftui/)
+[![CloudKit](https://img.shields.io/badge/CloudKit-3693F3?style=for-the-badge&logo=icloud&logoColor=white)](https://developer.apple.com/icloud/cloudkit/)
 
-## Arquitetura
+</div>
 
-MVVM com uma camada de serviço:
+---
+
+## 📑 Table of Contents
+
+- [About](#-about)
+- [What This POC Validates](#-what-this-poc-validates)
+- [How It Works](#-how-it-works)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Authors](#-authors)
+
+---
+
+## 📖 About
+
+This project was built to answer one question before using CloudKit in a production app:
+*can CloudKit alone handle users, posts, privacy and relationships between records?*
+It exercises the public and private databases side by side, record references, queries
+and image storage, all behind a single service layer with `async/await`.
+
+---
+
+## ✅ What This POC Validates
+
+- **🗂️ Public and private databases** of the same `CKContainer`, used side by side.
+- **🪪 Identity without login** — the iCloud `userRecordID` creates a private `PrivateUser` record linked to a public `User` profile.
+- **🔗 Record relationships** — each `Post` references its author with `CKRecord.Reference` (`.deleteSelf`), and the user keeps references to their posts.
+- **🔎 Queries** with `CKQuery` + `NSPredicate`, including fetching every post of a user by reference.
+- **🖼️ Images** stored as `Data` inside the record.
+- **🔁 Model mapping** between Swift structs and `CKRecord` (`toDictionary()` / `fromRecord(_:)`).
+
+---
+
+## ⚙️ How It Works
+
+1. **First launch** — the app reads the iCloud user ID and saves a private and a public user record.
+2. **Create a post** — write text, pick images and choose public or private.
+3. **Feed** — public posts are fetched together with their authors.
+4. **Profile** — shows every post published by a user.
+
+Under the hood, `CloudKitService` is the only type that talks to CloudKit, exposing
+`async` methods for save, fetch, query and delete. View models (`ContentViewModel`,
+`CreatPostSheetViewModel`, `ProfileViewModel`) build on it, and views never touch
+CloudKit directly.
+
+---
+
+## 🛠️ Tech Stack
+
+| Area | Tech |
+|------|------|
+| UI | SwiftUI · PhotosUI |
+| Backend | CloudKit (public + private databases) |
+| State | Observation (`@Observable`) |
+| Architecture | MVVM + service layer |
+
+---
+
+## 📂 Project Structure
 
 ```
 POC_CloudKit/
-├── Services/
-│   └── CloudKitService.swift   # Único ponto de acesso ao CloudKit (async/await)
+├── POC_CloudKitApp.swift       # App entry
+├── Services/                   # CloudKitService — single entry point to CloudKit
 ├── Models/                     # Post, User, PrivateUser, PostWithUser, RecordType
-├── ViewModels/                 # ContentViewModel, CreatPostSheetViewModel, ProfileViewModel
-└── Views/                      # ContentView, CreatPostSheet, ProfileView
+├── ViewModels/                 # Feed, post creation and profile view models
+└── Views/                      # Feed, post creation sheet, profile
 ```
 
-Todas as chamadas ao CloudKit usam as APIs `async` (`records(matching:)`, `save`, `record(for:)`), e as Views nunca falam com o CloudKit diretamente.
+---
 
-## Tecnologias
+## 🎯 Getting Started
 
-- Swift 5 · SwiftUI · Observation (`@Observable`)
-- CloudKit
-- PhotosUI
+### Requirements
 
-## Requisitos
+- Xcode 26+
+- iOS 26.2+
+- An Apple Developer account and an iCloud account signed in on the simulator or device
 
-- Xcode 26 ou superior
-- iOS 26.2 ou superior
-- Conta Apple Developer e um iCloud logado no simulador ou no dispositivo
+### Run
 
-## Como rodar
+```bash
+git clone https://github.com/JonasFNMelo/POC_CloudKit.git
+cd POC_CloudKit
+open POC-CloudKit.xcodeproj
+```
 
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/JonasFNMelo/POC_CloudKit.git
-   ```
-2. Abra `POC-CloudKit.xcodeproj` no Xcode.
-3. Em **Signing & Capabilities**, selecione o seu time e troque o container do iCloud (`iCloud.JonasMelo.POCCloudKit`) por um container seu.
-4. No CloudKit Console, crie os tipos de registro `User`, `PrivateUser` e `Post` e marque como consultáveis (*queryable*) os campos usados nos filtros (`id`, `privateID`, `userID`).
-5. Execute (`⌘R`) com uma conta iCloud logada.
+Then set your own **Signing Team** and replace the iCloud container
+(`iCloud.JonasMelo.POCCloudKit`) with one your team owns. In the CloudKit Console, create
+the `User`, `PrivateUser` and `Post` record types and mark the fields used in filters
+(`id`, `privateID`, `userID`) as queryable.
 
-## Autor
+---
 
-- [**Jonas Melo**](https://github.com/JonasFNMelo)
+## 👥 Authors
+
+<table width="100%">
+  <tr>
+    <td align="center" width="100%">
+      <a href="https://github.com/JonasFNMelo"><img src="https://github.com/JonasFNMelo.png" width="80" alt="Jonas Melo"/></a>
+      <br/><sub><b>Jonas Melo</b></sub><br/>
+      <a href="https://github.com/JonasFNMelo"><img src="https://skillicons.dev/icons?i=github" alt="GitHub"/></a>
+      <a href="https://www.linkedin.com/in/jonas-melo-/"><img src="https://skillicons.dev/icons?i=linkedin" alt="LinkedIn"/></a>
+    </td>
+  </tr>
+</table>
